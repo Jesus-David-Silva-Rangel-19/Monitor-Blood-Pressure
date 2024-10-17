@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oldenburg&family=Protest+Strike&display=swap" rel="stylesheet">
+    <title>Monitoreo de Hipertensión</title>
+    <style>
+        body {
+            background-color: #f0f4f7;
+            color: #333;
+            font-family: 'Oldenburg', sans-serif;
+        }
+        h1, h2 {
+            font-family: 'Protest Strike', sans-serif;
+            font-weight: bold;
+            text-align: center;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .form-control {
+            border-radius: 20px;
+        }
+        .btn {
+            border-radius: 20px;
+        }
+        .table {
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+        }
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            width: 90%;
+            max-width: 600px;
+            margin-top: 30px;
+        }
+        /* Estilos Responsivos */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 38px; /* Tamaño de fuente más pequeño en móviles */
+        }
+
+        h2 {
+            font-size: 32px; /* Tamaño de fuente más pequeño para h2 */
+            
+        }
+
+        .container {
+            margin-top: 30px; /* Reducir el margen en la parte superior */
+            padding: 0 15px; /* Reducir el padding lateral en móviles */
+        }
+
+        .form-control {
+            padding: 8px; /* Reducir el padding en inputs */
+        }
+
+        .btn {
+            padding: 10px; /* Ajustar el padding de los botones */
+        }
+
+        .table th, .table td {
+            font-size: 14px; /* Tamaño de fuente más pequeño en móviles */
+            padding: 8px; /* Reducir padding en celdas */
+        }
+
+        .footer {
+            font-size: 12px; /* Tamaño de fuente más pequeño para el pie de página */
+        }
+
+        .card {
+            padding: 10px; /* Ajustar el padding de las tarjetas */
+        }
+    }
+
+    @media (max-width: 480px) {
+        h1 {
+            font-size: 38px; /* Tamaño de fuente más pequeño en móviles */
+        }
+
+        h2 {
+            font-size: 32px; /* Tamaño de fuente más pequeño para h2 */
+            margin-top: 20px;
+        }
+
+        .form-control {
+            font-size: 12px; /* Tamaño de fuente más pequeño en inputs */
+        }
+
+        .table {
+            font-size: 12px; /* Tamaño de fuente más pequeño en la tabla */
+        }
+    }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Monitoreo de Hipertensión</h1>
+    <div class="card p-4">
+        <form id="bloodPressureForm">
+            <div class="form-group">
+                <label for="systolic">Presión Sistólica (mmHg):</label>
+                <input type="number" class="form-control" name="systolic" required>
+            </div>
+            <div class="form-group">
+                <label for="diastolic">Presión Diastólica (mmHg):</label>
+                <input type="number" class="form-control" name="diastolic" required>
+            </div>
+            <div class="form-group">
+                <label for="time">Hora:</label>
+                <input type="time" class="form-control" name="time" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Agregar Lectura</button>
+        </form>
+        <a href="history.html" class="btn btn-secondary btn-block mt-3">Ver Historial</a>
+    </div>
+
+    <h2>Gráficos de Presión Arterial</h2>
+    <div class="chart-container">
+        <canvas id="bloodPressureChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
+<div class="footer">
+    <p>&copy; 2024 Jesús David Silva Rangel. Todos los derechos reservados.</p>
+    <a href="https://github.com/" target="_blank" class="text-decoration-none"><i class="fab fa-github"></i> Visita nuestro repositorio en GitHub</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let bloodPressureChart;
+
+    // Función para guardar la lectura
+    function addReading(event) {
+        event.preventDefault(); // Prevenir el envío del formulario
+
+        const systolic = parseInt(document.querySelector('input[name="systolic"]').value);
+        const diastolic = parseInt(document.querySelector('input[name="diastolic"]').value);
+        const time = document.querySelector('input[name="time"]').value;
+
+        // Verificar que las entradas no sean NaN o vacías
+        if (isNaN(systolic) || isNaN(diastolic) || !time) {
+            alert("Por favor, completa todos los campos correctamente.");
+            return;
+        }
+
+        // Crear objeto de lectura con formato ISO para la fecha
+        const reading = {
+            systolic,
+            diastolic,
+            date: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+            time // Hora proporcionada por el usuario
+        };
+
+        // Guardar en el almacenamiento local
+        const readings = JSON.parse(localStorage.getItem('bloodPressureReadings')) || [];
+        readings.push(reading);
+        localStorage.setItem('bloodPressureReadings', JSON.stringify(readings));
+
+        // Limpiar los campos del formulario
+        document.getElementById('bloodPressureForm').reset();
+
+        // Redibujar gráfico después de agregar una lectura
+        updateChart();
+    }
+
+    // Función para actualizar el gráfico
+    function updateChart() {
+        const readings = JSON.parse(localStorage.getItem('bloodPressureReadings')) || [];
+        const systolicValues = readings.map(r => r.systolic);
+        const diastolicValues = readings.map(r => r.diastolic);
+        const labels = readings.map(r => `${r.date} ${r.time}`);
+
+        const ctx = document.getElementById('bloodPressureChart').getContext('2d');
+
+        // Destruir el gráfico existente si ya hay uno
+        if (bloodPressureChart) {
+            bloodPressureChart.destroy();
+        }
+
+        bloodPressureChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Presión Sistólica (mmHg)',
+                    data: systolicValues,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                    tension: 0.1
+                }, {
+                    label: 'Presión Diastólica (mmHg)',
+                    data: diastolicValues,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Fecha y Hora',
+                            font: {
+                                family: 'Protest Strike',
+                    }
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 10,
+                            font: {
+                                family: 'Protest Strike',
+                            }
+                            
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Presión (mmHg)',
+                            font: {
+                                family: 'Protest Strike',
+                            }
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: 'Protest Strike',
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} mmHg`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Agregar el evento al formulario
+    document.getElementById('bloodPressureForm').addEventListener('submit', addReading);
+
+    // Inicializar el gráfico al cargar la página
+    document.addEventListener('DOMContentLoaded', updateChart);
+</script>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
